@@ -1,0 +1,17 @@
+# Hermes model-routing project rules
+
+Hermes already loads project context files. Prefer `.hermes.md` / `HERMES.md` for highest-priority Hermes-specific rules; use `AGENTS.md` when that is the project convention. `SOUL.md` is separate identity and should not be used for project-specific routing unless the user intentionally wants global persona behavior.
+
+## Model-routing policy
+
+When a request is a native fixed task, use Hermes native routing first. Use `auxiliary.vision` for image or screenshot analysis, `auxiliary.compression` for context compression or summarization internals, `auxiliary.web_extract` for web extraction, and other configured `auxiliary.*` slots for their documented built-in task types.
+
+When the request is semantic user intent, consult the `model-router` skill route table in `skills.config.model-router.routes`. Do not invent root config keys. If a route is selected, state the route name, provider, model, cost/capability rationale, fallback route, and whether the action is a one-shot, session switch, or delegate subtask.
+
+| Intent | Preferred route | Execution policy |
+|---|---|---|
+| Write, refine, or translate an image-generation prompt. | `image_prompt` → `local-qwen` / `qwen3-4b` | Prefer isolated `hermes -z --provider local-qwen --model qwen3-4b`; do not treat this as `auxiliary.vision` unless actual image analysis is required. |
+| Debug code, diagnose stack traces, reason about failing tests/incidents. | `debugging` → `openrouter` / `anthropic/claude-sonnet-4` | Recommend `/model openrouter:anthropic/claude-sonnet-4` for a full debugging session or `hermes chat --provider openrouter --model anthropic/claude-sonnet-4 -q ...` for one isolated query. |
+| Routine chat or quick answers. | `routine_chat` → default cheap route | Stay on the default model unless the route table says otherwise. |
+
+Never run `/model ... --global` unless the user explicitly asks to persist a default model change. Prefer reversible session-scoped switches or isolated one-shot commands.

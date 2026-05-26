@@ -1,0 +1,104 @@
+# Hermes Agent routed model configuration example for ~/.hermes/config.yaml.
+# Native Hermes keys in this file: model, fallback_model, auxiliary, delegation,
+# custom_providers, and skills.config.<skill>. The intent route table under
+# skills.config.model-router is read by the bundled model-router Hermes skill;
+# Hermes core does not natively consume a root-level intent_routes key.
+
+model:
+  # Default/routine route. Use `hermes model` to configure provider credentials first.
+  provider: openrouter
+  model: openai/gpt-4o-mini
+
+fallback_model:
+  # Native Hermes failover slot. Choose a provider/model that is likely to be available.
+  provider: openrouter
+  model: anthropic/claude-sonnet-4
+
+auxiliary:
+  # Native fixed-task slots. These route built-in tasks, not arbitrary user intent.
+  compression:
+    provider: openrouter
+    model: google/gemini-2.5-flash
+  web_extract:
+    provider: openrouter
+    model: qwen/qwen3-8b
+  vision:
+    provider: openrouter
+    model: openai/gpt-4o-mini
+  approval:
+    provider: openrouter
+    model: openai/gpt-4o-mini
+  skills_hub:
+    provider: openrouter
+    model: openai/gpt-4o-mini
+  mcp:
+    provider: openrouter
+    model: openai/gpt-4o-mini
+  triage_specifier:
+    provider: openrouter
+    model: openai/gpt-4o-mini
+  kanban_decomposer:
+    provider: openrouter
+    model: openai/gpt-4o-mini
+  profile_describer:
+    provider: openrouter
+    model: openai/gpt-4o-mini
+
+delegation:
+  # Native delegate subagent default. This is whole-subtask routing.
+  provider: openrouter
+  model: anthropic/claude-sonnet-4
+
+custom_providers:
+  # Example named custom OpenAI-compatible endpoint for Qwen 4B. Prefer creating
+  # this through `hermes model`, then verify the saved shape with `hermes config`.
+  - name: local-qwen
+    base_url: http://localhost:11434/v1
+    model: qwen3-4b
+
+skills:
+  config:
+    model-router:
+      # Overlay-owned settings consumed by assets/model-router-skill.
+      default_route: routine_chat
+      execution_mode: advise_or_oneshot
+      require_confirmation_for_global_switch: true
+      routes:
+        image_prompt:
+          intent: "Write, refine, or translate a prompt for image generation."
+          keywords:
+            - image prompt
+            - prompt for image
+            - midjourney
+            - flux
+            - sdxl
+            - stable diffusion
+          provider: local-qwen
+          model: qwen3-4b
+          command_mode: oneshot
+          fallback_route: routine_chat
+          rationale: "Cheap named local Qwen 4B route for prompt wording."
+        debugging:
+          intent: "Debug code, explain stack traces, diagnose failing tests, or reason about production incidents."
+          keywords:
+            - debug
+            - traceback
+            - stack trace
+            - failing test
+            - exception
+            - root cause
+          provider: openrouter
+          model: anthropic/claude-sonnet-4
+          command_mode: advise
+          fallback_route: routine_chat
+          rationale: "Hard reasoning and code diagnosis route."
+        routine_chat:
+          intent: "Routine conversation and quick answers."
+          keywords:
+            - quick answer
+            - summarize briefly
+          provider: openrouter
+          model: openai/gpt-4o-mini
+          command_mode: current_session
+          fallback_route: debugging
+          rationale: "Cheap fast default."
